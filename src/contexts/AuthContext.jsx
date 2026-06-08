@@ -10,8 +10,24 @@ const KEYS = {
   EXAMS: "sor_exams",
   EXAM_RESULTS: "sor_exam_results",
   EXAM_REQUESTS: "sor_exam_requests",
+  DEMO_USAGE: "sor_demo_usage",
   API_KEY: "sor_apikey",
 };
+
+// ─── DEMO USAGE CAP ───────────────────────────────────────────
+// Limits a single browser/device to ONE full test run: one teacher account,
+// one student account, one exam upload, and one exam attempt. After that those
+// actions are blocked so a demo client can't keep replaying the product.
+// Capped automatically in production builds, free in local dev. Force it with
+// VITE_DEMO_LIMIT="true" or disable with "false".
+const DEMO_LIMIT =
+  import.meta.env.VITE_DEMO_LIMIT === "true"
+    ? true
+    : import.meta.env.VITE_DEMO_LIMIT === "false"
+      ? false
+      : import.meta.env.PROD;
+
+const DEMO_CAPS = { teachers: 1, students: 1, exams: 1, attempts: 1 };
 
 const DEFAULT_USERS = [
   {
@@ -199,11 +215,37 @@ export const storage = {
     localStorage.setItem(KEYS.EXAM_REQUESTS, JSON.stringify(reqs));
   },
 
+  // ── DEMO USAGE CAP ──
+  demo: {
+    enabled: DEMO_LIMIT,
+    caps: DEMO_CAPS,
+    get: () => {
+      const d = localStorage.getItem(KEYS.DEMO_USAGE);
+      return d
+        ? JSON.parse(d)
+        : { teachers: 0, students: 0, exams: 0, attempts: 0 };
+    },
+    count: (kind) => storage.demo.get()[kind] || 0,
+    // true only when the cap is active AND already reached for this action
+    capReached: (kind) =>
+      DEMO_LIMIT && (storage.demo.get()[kind] || 0) >= (DEMO_CAPS[kind] || 1),
+    bump: (kind) => {
+      const u = storage.demo.get();
+      u[kind] = (u[kind] || 0) + 1;
+      localStorage.setItem(KEYS.DEMO_USAGE, JSON.stringify(u));
+    },
+  },
+
   // ── FULL RESET ──
   // Wipe every app key. Crucially, set USERS to an empty array (not just
   // remove it) so the hardcoded demo accounts do NOT get re-seeded on reload.
+  // The demo-usage counter is deliberately KEPT so a client can't reset their
+  // one-test-per-device limit by clearing data.
   clearAllData: () => {
-    Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
+    Object.values(KEYS).forEach((k) => {
+      if (k === KEYS.DEMO_USAGE) return;
+      localStorage.removeItem(k);
+    });
     localStorage.removeItem("sor_linked_teacher_code");
     localStorage.setItem(KEYS.USERS, "[]");
   },
@@ -272,6 +314,21 @@ export function AuthProvider({ children }) {
     ) {
       return { ok: false, error: "Username already taken" };
     }
+    // Demo cap: one teacher + one student account per device
+    if (data.role === "teacher" && storage.demo.capReached("teachers")) {
+      return {
+        ok: false,
+        error:
+          "Demo limit reached — only one teacher account can be created on this device.",
+      };
+    }
+    if (data.role === "student" && storage.demo.capReached("students")) {
+      return {
+        ok: false,
+        error:
+          "Demo limit reached — only one student account can be created on this device.",
+      };
+    }
     if (data.role === "teacher") {
       const franchiseCode =
         data.username.toUpperCase().slice(0, 6) +
@@ -286,6 +343,7 @@ export function AuthProvider({ children }) {
         franchiseCode: franchiseCode,
       };
       storage.saveUsers([...users, newUser]);
+      storage.demo.bump("teachers");
       storage.setCurrentUser(newUser);
       setUser(newUser);
       setPage("teacher-dashboard");
@@ -312,6 +370,7 @@ export function AuthProvider({ children }) {
         xp: 0,
       };
       storage.saveUsers([...users, newUser]);
+      storage.demo.bump("students");
       storage.setCurrentUser(newUser);
       setUser(newUser);
       setPage("student-dashboard");

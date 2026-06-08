@@ -827,6 +827,12 @@ export default function ExamMode() {
   const currentSection = sections[sectionIdx];
 
   const startExam = async () => {
+    // Demo cap: only one exam attempt per device
+    if (storage.demo.capReached("attempts")) {
+      setPhase("demo-locked");
+      return;
+    }
+    storage.demo.bump("attempts");
     setPhase("play");
     setSectionIdx(0);
     setAnswers({});
@@ -1104,17 +1110,84 @@ export default function ExamMode() {
             </ul>
           </div>
 
-          <button
-            className="btn btn-primary btn-lg btn-full"
-            onClick={startExam}
-          >
+          {storage.demo.capReached("attempts") ? (
+            <div
+              style={{
+                background: "var(--gold-dim)",
+                border: "1px solid var(--gold)",
+                borderRadius: 10,
+                padding: "14px 16px",
+                color: "var(--text)",
+                fontSize: "0.9rem",
+                textAlign: "center",
+              }}
+            >
+              <span
+                className="material-icons-round"
+                style={{
+                  fontSize: 18,
+                  verticalAlign: "middle",
+                  marginRight: 6,
+                  color: "var(--gold-hover)",
+                }}
+              >
+                lock
+              </span>
+              Demo limit reached — this device has already completed one exam
+              attempt. Contact us for full access.
+            </div>
+          ) : (
+            <button
+              className="btn btn-primary btn-lg btn-full"
+              onClick={startExam}
+            >
+              <span
+                className="material-icons-round"
+                style={{
+                  fontSize: 18,
+                  verticalAlign: "middle",
+                  marginRight: 4,
+                }}
+              >
+                play_arrow
+              </span>
+              Start Exam
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── DEMO LOCKED (attempt cap reached) ─────────────────────
+  if (phase === "demo-locked") {
+    return (
+      <div className="page-content">
+        <div className="results-card" style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "3rem", marginBottom: 12 }}>
             <span
               className="material-icons-round"
-              style={{ fontSize: 18, verticalAlign: "middle", marginRight: 4 }}
+              style={{ fontSize: "inherit", color: "var(--gold-hover)" }}
             >
-              play_arrow
+              lock
             </span>
-            Start Exam
+          </div>
+          <div className="results-label">Demo limit reached</div>
+          <p
+            style={{
+              color: "var(--text-muted)",
+              margin: "8px 0 20px",
+              fontSize: "0.9rem",
+            }}
+          >
+            This device has already completed one exam attempt in the demo.
+            Please contact us to unlock full, unlimited access.
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate("student-dashboard")}
+          >
+            ← Back to Dashboard
           </button>
         </div>
       </div>

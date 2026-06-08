@@ -564,23 +564,36 @@ export default function LoginPage() {
 
         <p className="login-footer">AbacusExam &bull; Learning Platform v1.0</p>
 
-        <button
-          type="button"
-          onClick={handleResetAll}
-          title="Delete all data and start fresh"
-          style={{
-            display: "block",
-            margin: "8px auto 0",
-            background: "none",
-            border: "none",
-            color: "rgba(255,255,255,0.4)",
-            fontSize: "0.72rem",
-            cursor: "pointer",
-            textDecoration: "underline",
-          }}
-        >
-          Reset all data
-        </button>
+        {storage.demo.enabled ? (
+          <p
+            style={{
+              textAlign: "center",
+              margin: "8px auto 0",
+              color: "rgba(255,255,255,0.4)",
+              fontSize: "0.72rem",
+            }}
+          >
+            Demo build — one full test per device.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={handleResetAll}
+            title="Delete all data and start fresh"
+            style={{
+              display: "block",
+              margin: "8px auto 0",
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.4)",
+              fontSize: "0.72rem",
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            Reset all data
+          </button>
+        )}
       </div>
     </div>
   );

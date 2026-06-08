@@ -103,6 +103,12 @@ export default function TeacherDashboard() {
 
   const handleAddStudent = () => {
     setAddError("");
+    if (storage.demo.capReached("students")) {
+      setAddError(
+        "Demo limit reached — only one student can be added on this device.",
+      );
+      return;
+    }
     if (!newStudent.name || !newStudent.username || !newStudent.password) {
       setAddError("All fields required");
       return;
@@ -127,6 +133,7 @@ export default function TeacherDashboard() {
       xp: 0,
     };
     storage.saveUsers([...users, created]);
+    storage.demo.bump("students");
     setAddSuccess(
       `${created.name} added! Login: ${created.username} / ${created.password}`,
     );
@@ -1103,7 +1110,16 @@ function ExamUploader({ user }) {
 
   const saveExam = () => {
     if (!preview) return;
+    if (storage.demo.capReached("exams")) {
+      setError(
+        "Demo limit reached — only one exam can be saved on this device.",
+      );
+      setPreview(null);
+      setTimeout(() => setError(""), 4000);
+      return;
+    }
     storage.saveExam(preview);
+    storage.demo.bump("exams");
     setSuccess("Exam saved successfully! Students can now take this exam.");
     setPreview(null);
     setFileName("");
