@@ -1,0 +1,14 @@
+{
+  "appId": "com.indianabacus.app",
+  "appName": "AbacusExam",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": null,
+      "keystoreAlias": null
+    }
+  }
+}
